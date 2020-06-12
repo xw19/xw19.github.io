@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Sourav Moitra</title>
+    <link>http://smoitra.com/</link>
+    <description>Recent content on Sourav Moitra</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 12 Jun 2020 10:06:37 +0530</lastBuildDate>
+    
+	<atom:link href="http://smoitra.com/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>My First Post</title>
+      <link>http://smoitra.com/posts/my-first-post/</link>
+      <pubDate>Fri, 12 Jun 2020 10:06:37 +0530</pubDate>
+      
+      <guid>http://smoitra.com/posts/my-first-post/</guid>
+      <description>Welcome Welcome to smoitra</description>
+    </item>
+    
+  </channel>
+</rss>
