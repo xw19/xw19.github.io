@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  
+    <title>How Kubernetes Actually Runs Your Container: A Deep Dive into CRI-O, conmon, and crun :: xw19&#39;s terminal</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A ground-up walkthrough of what happens after kubectl apply — from the API Server all the way down to a forked process living independently under systemd." />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="http://localhost:1313/posts/kubernetes-runtime-deep-dive/" />
+
+
+
+
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/buttons.min.86f6b4c106b6c6eb690ae5203d36b442c1f66f718ff4e8164fa86cf6c61ad641.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/code.min.c4581949edab7810737609fc5568852bcd908945f14561e366dcd2300a370545.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/fonts.min.5bb7ed13e1d00d8ff39ea84af26737007eb5051b157b86fc24487c94f3dc8bbe.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/footer.min.eb8dfc2c6a7eafa36cd3ba92d63e69e849e2200e0002a228d137f236b09ecd75.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/gist.min.a751e8b0abe1ba8bc53ced52a38b19d8950fe78ca29454ea8c2595cf26aad5c0.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/header.min.75c7eb0e2872d95ff48109c6647d0223a38db52e2561dd87966eb5fc7c6bdac6.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/main.min.36833afd348409fc6c3d09d0897c5833d9d5bf1ff31f5e60ea3ee42ce2b1268c.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/menu.min.3c17467ebeb3d38663dce68f71f519901124fa5cbb4519b2fb0667a21e9aca39.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/pagination.min.bbb986dbce00a5ce5aca0504b7925fc1c581992a4bf57f163e5d69cc1db7d836.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/post.min.e6dddd258e64c83e05cec0cd49c05216742d42fc8ecbfbe6b67083412b609bd3.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/syntax.min.a0773cce9310cb6d8ed23e50f005448facf29a53001b57e038828daa466b25c0.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/terminal.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.css">
+
+  
+  <link rel="stylesheet" href="http://localhost:1313/css/terms.min.b81791663c3790e738e571cdbf802312390d30e4b1d8dc9d814a5b5454d0ac11.css">
+
+
+<link rel="stylesheet" href="http://localhost:1313/terminal.css">
+
+
+
+
+<link rel="shortcut icon" href="http://localhost:1313/favicon.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="How Kubernetes Actually Runs Your Container: A Deep Dive into CRI-O, conmon, and crun">
+<meta property="og:description" content="A ground-up walkthrough of what happens after kubectl apply — from the API Server all the way down to a forked process living independently under systemd." />
+<meta property="og:url" content="http://localhost:1313/posts/kubernetes-runtime-deep-dive/" />
+<meta property="og:site_name" content="xw19&#39;s terminal" />
+
+  <meta property="og:image" content="http://localhost:1313/og-image.png">
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+  <meta property="article:section" content="infrastructure" />
+
+
+  <meta property="article:published_time" content="2025-05-19 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+
+
+<div class="container">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    xw19@localhost:~$ _
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19">GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts">Posts</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19" >GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts" >Posts</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="http://localhost:1313/posts/kubernetes-runtime-deep-dive/">How Kubernetes Actually Runs Your Container: A Deep Dive into CRI-O, conmon, and crun</a>
+  </h1>
+  <div class="post-meta"><time class="post-date">2025-05-19</time></div>
+
+  
+    <span class="post-tags">
+      
+      #<a href="http://localhost:1313/tags/kubernetes/">kubernetes</a>&nbsp;
+      
+      #<a href="http://localhost:1313/tags/containers/">containers</a>&nbsp;
+      
+      #<a href="http://localhost:1313/tags/cri-o/">cri-o</a>&nbsp;
+      
+      #<a href="http://localhost:1313/tags/linux/">linux</a>&nbsp;
+      
+      #<a href="http://localhost:1313/tags/internals/">internals</a>&nbsp;
+      
+    </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>You run <code>kubectl apply -f deployment.yaml</code>. Kubernetes &ldquo;does its thing.&rdquo; A container appears. But what <em>actually</em> happened between those two events?</p>
+<p>Most explanations stop at &ldquo;the Kubelet talks to the container runtime.&rdquo; This one doesn&rsquo;t.</p>
+<hr>
+<h2 id="the-control-plane-path">The Control Plane Path<a href="#the-control-plane-path" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>Before we even get to container runtimes, the request has to travel through the control plane.</p>
+<pre tabindex="0"><code>kubectl apply -f deployment.yaml
+    │
+    ▼
+API Server  ──────▶  etcd  (desired state is stored)
+    ▲
+    │ writes spec.nodeName
+    │
+Scheduler  (picks the best node, writes selection back via API Server)
+    ▲
+    │ ListWatch (Kubelet polls for pods assigned to its node)
+    │
+Kubelet
+</code></pre><p>One important correction to how people usually picture this: <strong>the Scheduler doesn&rsquo;t push a response back like an RPC call</strong>. Instead, it <em>writes</em> the selected node name into etcd through the API Server. The Kubelet on each node is running a <code>ListWatch</code> — a long-lived streaming watch — and detects when a pod gets assigned to it. The Kubelet pulls; nothing pushes to it.</p>
+<p>This distinction matters because it&rsquo;s a core Kubernetes design principle: <strong>level-triggered, not edge-triggered</strong>. State is always reconcilable from etcd, not from who-told-whom-what.</p>
+<hr>
+<h2 id="kubelet--cri-o-the-grpc-boundary">Kubelet → CRI-O: The gRPC Boundary<a href="#kubelet--cri-o-the-grpc-boundary" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>Once the Kubelet knows it has a pod to run, it talks to the container runtime over gRPC, using the <strong>Container Runtime Interface (CRI)</strong> — a standard Kubernetes API that decouples the Kubelet from any specific runtime.</p>
+<p>CRI-O is one such runtime. It implements the CRI and bridges the gap between Kubernetes and OCI-compliant runtimes like <code>crun</code>.</p>
+<p>When the Kubelet sends a <code>RunPodSandbox</code> / <code>CreateContainer</code> / <code>StartContainer</code> sequence, CRI-O gets to work:</p>
+<pre tabindex="0"><code>CRI-O:
+  1. Pull image (via containers/image library)
+  2. Create rootfs overlay (via containers/storage)
+  3. Set up networking via CNI plugins
+  4. Generate config.json  ← the OCI Runtime Spec bundle
+  5. double-fork() ──▶ conmon
+</code></pre><p>The <code>config.json</code> is the contract between CRI-O and the OCI runtime. It describes everything about the container: namespaces, cgroups, mounts, capabilities, the entrypoint — all of it.</p>
+<hr>
+<h2 id="the-double-fork-why-conmon-lives-outside-cri-o">The Double-Fork: Why conmon Lives Outside CRI-O<a href="#the-double-fork-why-conmon-lives-outside-cri-o" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>This is where it gets interesting from a systems perspective.</p>
+<p>CRI-O doesn&rsquo;t hold a long-lived connection to the container process. Instead, it spawns an intermediate process — <strong>conmon</strong> (Container Monitor) — using a <strong>double-fork</strong> pattern.</p>
+<p>The double-fork is a classic Unix trick:</p>
+<pre tabindex="0"><code>CRI-O
+  └─ fork() ──▶ intermediate child
+                  └─ fork() ──▶ conmon   ← grandchild
+                  └─ exits immediately
+</code></pre><p>When the intermediate child exits, the kernel <strong>reparents</strong> conmon to PID 1 (systemd). CRI-O is no longer in conmon&rsquo;s process ancestry. This is the key: <strong>if CRI-O dies, conmon survives.</strong></p>
+<hr>
+<h2 id="what-conmon-does">What conmon Does<a href="#what-conmon-does" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>conmon is a small C program with a focused job: monitor the container process and keep its stdio/exit code accessible to CRI-O and Kubelet after the fact.</p>
+<p>On startup, conmon does three critical things:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#a6e22e">setsid</span>();                                    <span style="color:#75715e">// 1. New session, detach from terminal
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">prctl</span>(PR_SET_CHILD_SUBREAPER, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>);  <span style="color:#75715e">// 2. Claim orphaned descendants
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// ... then:
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">fork</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">exec</span>() <span style="color:#960050;background-color:#1e0010">──▶</span> crun                     <span style="color:#75715e">// 3. Spawn the OCI runtime
+</span></span></span></code></pre></div><p><strong><code>setsid()</code></strong> creates a new process session. This detaches conmon from any controlling terminal and ensures signal propagation doesn&rsquo;t bleed back up to CRI-O&rsquo;s process group.</p>
+<p><strong><code>PR_SET_CHILD_SUBREAPER</code></strong> is the subtle one. Normally, when a process orphans its child (exits before the child does), the kernel reparents that child to PID 1. With subreaper set, conmon <em>intercepts</em> that reparenting for any of its descendants. This means when crun forks the container entrypoint and then exits, the container process gets reparented to conmon — not to systemd.</p>
+<p>conmon can now:</p>
+<ul>
+<li>Receive the container&rsquo;s <code>SIGCHLD</code> when it exits</li>
+<li>Read the container&rsquo;s exit code</li>
+<li>Stream stdout/stderr to log files</li>
+<li>Respond to Kubelet queries about container status</li>
+</ul>
+<hr>
+<h2 id="what-crun-does-and-why-it-exits">What crun Does (and Why It Exits)<a href="#what-crun-does-and-why-it-exits" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>crun is the OCI runtime — it does the heavy lifting of actually constructing the container:</p>
+<pre tabindex="0"><code>crun:
+  1. unshare() — create new namespaces (pid, net, mnt, uts, ipc)
+  2. Apply cgroup limits
+  3. Mount the rootfs (overlayfs)
+  4. Set up devices, /proc, /sys
+  5. Drop capabilities
+  6. fork() + exec() ──▶ container entrypoint
+  7. exit(0)              ← crun is done
+</code></pre><p>crun&rsquo;s job is to <em>set up and launch</em>, not to <em>monitor</em>. Once the container entrypoint is running, crun exits. This is intentional OCI design: the runtime is ephemeral, not a daemon.</p>
+<p>When crun exits, the container process becomes an orphan. The kernel looks up the process tree for the nearest subreaper — which is conmon — and reparents the container there.</p>
+<p><strong>The container did not &ldquo;register&rdquo; itself anywhere.</strong> The kernel handled the reparenting automatically, as a consequence of <code>PR_SET_CHILD_SUBREAPER</code>.</p>
+<hr>
+<h2 id="the-final-process-tree">The Final Process Tree<a href="#the-final-process-tree" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>After everything settles:</p>
+<pre tabindex="0"><code>systemd (PID 1)
+  └─ conmon
+       └─ your container process
+</code></pre><p>CRI-O: gone from the tree (or still running, irrelevant either way).
+Kubelet: not in the tree at all.
+API Server: not in the tree at all.</p>
+<pre tabindex="0"><code># Even if you do this:
+systemctl stop kubelet
+systemctl stop crio
+
+# Your container is still running:
+ps aux | grep your-entrypoint   ✓
+</code></pre><p>This is the guarantee: <strong>once a container is started, its continued execution depends on none of the Kubernetes control plane components</strong>. The only things it depends on are conmon (for monitoring) and the kernel itself.</p>
+<hr>
+<h2 id="why-this-architecture-exists">Why This Architecture Exists<a href="#why-this-architecture-exists" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>It&rsquo;s worth stepping back and appreciating what this design solves.</p>
+<p><strong>The naive approach</strong> would be to have CRI-O hold open a file descriptor or process handle to every container it started. That creates a hard dependency: CRI-O crashes → all containers become unmonitorable, possibly orphaned to PID 1 with no one tracking their exit codes.</p>
+<p><strong>The conmon approach</strong> decouples monitoring from lifecycle:</p>
+<ul>
+<li>CRI-O is stateless with respect to running containers — it can restart cleanly</li>
+<li>Kubelet can restart, re-query conmon via a Unix socket, and recover container state</li>
+<li>conmon is tiny (~1000 lines of C) and has almost no failure modes</li>
+<li>The subreaper pattern is a kernel primitive — it doesn&rsquo;t need userspace cooperation</li>
+</ul>
+<p>It&rsquo;s layered abstraction done right: each component does exactly one thing and is replaceable without disturbing the others.</p>
+<hr>
+<h2 id="full-corrected-flow-reference">Full Corrected Flow (Reference)<a href="#full-corrected-flow-reference" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<pre tabindex="0"><code>kubectl apply
+  └─▶ API Server ──▶ etcd (stores desired state)
+          ▲
+Scheduler ┘  (writes spec.nodeName via API Server)
+          ▲
+Kubelet ──┘  (ListWatch detects pod assigned to node)
+
+Kubelet ──gRPC/CRI──▶ CRI-O
+  CRI-O:
+    1. Pull image (containers/image)
+    2. Create overlay rootfs, CNI networking, storage
+    3. Generate config.json (OCI Runtime Spec)
+    4. double-fork ──▶ conmon (reparented to systemd)
+
+  conmon:
+    1. setsid()
+    2. prctl(PR_SET_CHILD_SUBREAPER, 1)
+    3. fork + exec ──▶ crun
+
+  crun:
+    1. unshare() namespaces
+    2. Apply cgroups
+    3. Mount rootfs
+    4. fork + exec ──▶ container entrypoint
+    5. exit()
+
+  kernel: orphaned container reparented to conmon
+
+Final tree:
+  systemd ──▶ conmon ──▶ [container process]
+</code></pre><p>The control plane can go down entirely. Your pods keep running.</p>
+<hr>
+<h2 id="further-reading">Further Reading<a href="#further-reading" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<ul>
+<li><a href="https://github.com/containers/conmon">conmon source code</a> — the subreaper logic is in <code>src/conmon.c</code></li>
+<li><a href="https://github.com/containers/crun">crun source code</a> — lean, readable C OCI runtime</li>
+<li><a href="https://github.com/opencontainers/runtime-spec">OCI Runtime Spec</a> — what <code>config.json</code> must contain</li>
+<li><a href="https://github.com/kubernetes/cri-api">CRI API</a> — the gRPC interface Kubelet uses</li>
+<li><code>man 2 prctl</code> — <code>PR_SET_CHILD_SUBREAPER</code> section is worth reading in full</li>
+</ul>
+
+      </div></div>
+
+  
+    
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2026 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

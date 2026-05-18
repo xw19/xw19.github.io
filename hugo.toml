@@ -1,0 +1,50 @@
+baseURL = 'https://xw19.github.io/'
+languageCode = 'en-us'
+title = 'xw19'
+theme = 'terminal'
+
+[params]
+  # dir name of your main content
+  contentTypeName = "posts"
+  # if you set this to 0, all menu items will be displayed in the main menu
+  showMenuItems = 3
+  # set theme to full width
+  fullWidthTheme = false
+  # center theme with limited width
+  centerTheme = false
+  # default theme color
+  themeColor = "orange"
+  # custom CSS for CRT effect
+  customCSS = ["css/crt.css"]
+
+[languages]
+  [languages.en]
+    languageName = "English"
+    title = "xw19's terminal"
+    subtitle = "blogging about k8s, linux, systems, and AI"
+    keywords = "k8s, linux, systems, ai, terminal"
+    copyright = ""
+    menuMore = "Show more"
+    readMore = "Read more"
+    readOtherPosts = "Read other posts"
+
+    [languages.en.params.logo]
+      logoText = "xw19@localhost:~$ _"
+      logoHomeLink = "/"
+
+    [languages.en.menu]
+      [[languages.en.menu.main]]
+        identifier = "posts"
+        name = "Posts"
+        url = "/posts"
+      [[languages.en.menu.main]]
+        identifier = "about"
+        name = "About"
+        url = "/about"
+      [[languages.en.menu.main]]
+        identifier = "github"
+        name = "GitHub"
+        url = "https://github.com/xw19"
+
+[markup.goldmark.renderer]
+  unsafe = true

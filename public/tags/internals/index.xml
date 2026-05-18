@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Internals on xw19&#39;s terminal</title>
+    <link>http://localhost:1313/tags/internals/</link>
+    <description>Recent content in Internals on xw19&#39;s terminal</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 19 May 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/internals/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>How Kubernetes Actually Runs Your Container: A Deep Dive into CRI-O, conmon, and crun</title>
+      <link>http://localhost:1313/posts/kubernetes-runtime-deep-dive/</link>
+      <pubDate>Mon, 19 May 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/kubernetes-runtime-deep-dive/</guid>
+      <description>&lt;p&gt;You run &lt;code&gt;kubectl apply -f deployment.yaml&lt;/code&gt;. Kubernetes &amp;ldquo;does its thing.&amp;rdquo; A container appears. But what &lt;em&gt;actually&lt;/em&gt; happened between those two events?&lt;/p&gt;&#xA;&lt;p&gt;Most explanations stop at &amp;ldquo;the Kubelet talks to the container runtime.&amp;rdquo; This one doesn&amp;rsquo;t.&lt;/p&gt;&#xA;&lt;hr&gt;&#xA;&lt;h2 id=&#34;the-control-plane-path&#34;&gt;The Control Plane Path&lt;/h2&gt;&#xA;&lt;p&gt;Before we even get to container runtimes, the request has to travel through the control plane.&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl apply -f deployment.yaml&#xA;    │&#xA;    ▼&#xA;API Server  ──────▶  etcd  (desired state is stored)&#xA;    ▲&#xA;    │ writes spec.nodeName&#xA;    │&#xA;Scheduler  (picks the best node, writes selection back via API Server)&#xA;    ▲&#xA;    │ ListWatch (Kubelet polls for pods assigned to its node)&#xA;    │&#xA;Kubelet&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;One important correction to how people usually picture this: &lt;strong&gt;the Scheduler doesn&amp;rsquo;t push a response back like an RPC call&lt;/strong&gt;. Instead, it &lt;em&gt;writes&lt;/em&gt; the selected node name into etcd through the API Server. The Kubelet on each node is running a &lt;code&gt;ListWatch&lt;/code&gt; — a long-lived streaming watch — and detects when a pod gets assigned to it. The Kubelet pulls; nothing pushes to it.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

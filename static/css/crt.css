@@ -1,0 +1,45 @@
+/* CRT Scanline Effect */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  /* Horizontal scanlines - adjusted for light background */
+  background: linear-gradient(rgba(69, 55, 43, 0) 50%, rgba(69, 55, 43, 0.05) 50%), 
+              linear-gradient(90deg, rgba(255, 99, 71, 0.02), rgba(69, 55, 43, 0.01), rgba(255, 99, 71, 0.02));
+  z-index: 9999;
+  pointer-events: none;
+  background-size: 100% 2px, 3px 100%;
+}
+
+/* Subtle Screen Flicker */
+@keyframes flicker {
+  0% { opacity: 0.99; }
+  5% { opacity: 0.98; }
+  10% { opacity: 0.97; }
+  15% { opacity: 0.98; }
+  25% { opacity: 0.98; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+body {
+  animation: flicker 0.15s infinite;
+}
+
+/* Phosphor Glow for Text - Adjusted for Apple theme colors */
+.post-title, .logo-text, .menu-link {
+  text-shadow: 0 0 2px rgba(255, 99, 71, 0.3);
+}
+
+/* Vintage scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #fff7f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #ff6347;
+  border-radius: 0px;
+}
