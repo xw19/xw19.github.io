@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Investigating CRI-O&#39;s cmux usage: a code-reading journey :: xw19&#39;s terminal</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Reading through CRI-O source, I stumbled onto an abandoned dependency with CVE exposure. Here&#39;s what I found, the issue I filed, and my take on the path forward." />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="https://xw19.github.io/posts/cri-o-cmux-usage-and-issue/" />
+
+
+
+
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/buttons.min.86f6b4c106b6c6eb690ae5203d36b442c1f66f718ff4e8164fa86cf6c61ad641.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/code.min.c4581949edab7810737609fc5568852bcd908945f14561e366dcd2300a370545.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/fonts.min.5bb7ed13e1d00d8ff39ea84af26737007eb5051b157b86fc24487c94f3dc8bbe.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/footer.min.eb8dfc2c6a7eafa36cd3ba92d63e69e849e2200e0002a228d137f236b09ecd75.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/gist.min.a751e8b0abe1ba8bc53ced52a38b19d8950fe78ca29454ea8c2595cf26aad5c0.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/header.min.75c7eb0e2872d95ff48109c6647d0223a38db52e2561dd87966eb5fc7c6bdac6.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/main.min.36833afd348409fc6c3d09d0897c5833d9d5bf1ff31f5e60ea3ee42ce2b1268c.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/menu.min.3c17467ebeb3d38663dce68f71f519901124fa5cbb4519b2fb0667a21e9aca39.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/pagination.min.bbb986dbce00a5ce5aca0504b7925fc1c581992a4bf57f163e5d69cc1db7d836.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/post.min.e6dddd258e64c83e05cec0cd49c05216742d42fc8ecbfbe6b67083412b609bd3.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/syntax.min.a2cc694a9b481f15d41722bffc2cc54eea4c4f74fd9072b0b33253604c22606e.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/terminal.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/terms.min.b81791663c3790e738e571cdbf802312390d30e4b1d8dc9d814a5b5454d0ac11.css">
+
+
+<link rel="stylesheet" href="https://xw19.github.io/terminal.css">
+
+
+
+
+<link rel="shortcut icon" href="https://xw19.github.io/favicon.png">
+<link rel="apple-touch-icon" href="https://xw19.github.io/apple-touch-icon.png">
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Investigating CRI-O&#39;s cmux usage: a code-reading journey">
+<meta property="og:description" content="Reading through CRI-O source, I stumbled onto an abandoned dependency with CVE exposure. Here&#39;s what I found, the issue I filed, and my take on the path forward." />
+<meta property="og:url" content="https://xw19.github.io/posts/cri-o-cmux-usage-and-issue/" />
+<meta property="og:site_name" content="xw19&#39;s terminal" />
+
+  <meta property="og:image" content="https://xw19.github.io/og-image.png">
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+  <meta property="article:section" content="infrastructure" />
+
+
+  <meta property="article:published_time" content="2025-05-22 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+
+
+<div class="container">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    xw19@localhost:~$ _
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19">GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts">Posts</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19" >GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts" >Posts</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="https://xw19.github.io/posts/cri-o-cmux-usage-and-issue/">Investigating CRI-O&rsquo;s cmux usage: a code-reading journey</a>
+  </h1>
+  <div class="post-meta"><time class="post-date">2025-05-22</time></div>
+
+  
+    <span class="post-tags">
+      
+      #<a href="https://xw19.github.io/tags/kubernetes/">kubernetes</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/containers/">containers</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/cri-o/">cri-o</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/linux/">linux</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/internals/">internals</a>&nbsp;
+      
+    </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>I&rsquo;ve been reading through the CRI-O codebase lately — partly out of curiosity, partly to solidify my mental model of how container runtimes wire themselves together. While doing that I tripped over a piece of plumbing that caught my attention: <code>cmux</code>.</p>
+<h2 id="what-i-found-in-maingo">What I found in main.go<a href="#what-i-found-in-maingo" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>While stepping through <code>cmd/crio/main.go</code>, I noticed CRI-O uses <code>soheilhy/cmux</code> — a connection multiplexer — to share a single Unix socket between gRPC and HTTP traffic.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// cmd/crio/main.go</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">m</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">cmux</span>.<span style="color:#a6e22e">New</span>(<span style="color:#a6e22e">lis</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">grpcL</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">MatchWithWriters</span>(<span style="color:#a6e22e">cmux</span>.<span style="color:#a6e22e">HTTP2MatchHeaderFieldSendSettings</span>(<span style="color:#e6db74">&#34;content-type&#34;</span>, <span style="color:#e6db74">&#34;application/grpc&#34;</span>))
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">httpL</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Match</span>(<span style="color:#a6e22e">cmux</span>.<span style="color:#a6e22e">HTTP1Fast</span>())
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">Serve</span>(<span style="color:#a6e22e">grpcL</span>)   <span style="color:#75715e">// CRI v1 Runtime + Image</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#a6e22e">httpServer</span>.<span style="color:#a6e22e">Serve</span>(<span style="color:#a6e22e">httpL</span>)   <span style="color:#75715e">// /info, /config, /containers/:id, /pause/:id, /unpause/:id, /debug/*</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">go</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Serve</span>()
+</span></span></code></pre></div><p>The idea is clean enough — one socket, two protocols, cmux sniffs the first bytes and routes traffic accordingly. Worth noting: the metrics server and pprof endpoints already use <em>independent</em> listeners. So cmux in <code>main.go</code> is the only remaining usage of this dependency.</p>
+<p>At first glance it looks like a neat trick. But then I checked the upstream project.</p>
+<h2 id="the-dependency-is-abandoned">The dependency is abandoned<a href="#the-dependency-is-abandoned" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p><code>soheilhy/cmux</code> hasn&rsquo;t seen a commit since <strong>February 5, 2021</strong>. 26 open issues, 10 open PRs, some dating back to 2019 — zero maintainer response. It&rsquo;s effectively a ghost town.</p>
+<p>The library pins a stale <code>golang.org/x/net</code> snapshot from November 2020, which predates several CVE fixes in that package:</p>
+<table>
+	<thead>
+			<tr>
+					<th>CVE</th>
+					<th>Impact</th>
+					<th>Fixed in</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>CVE-2022-41723 (CVSS 7.5)</td>
+					<td>HPACK quadratic-time DoS</td>
+					<td>x/net v0.7.0</td>
+			</tr>
+			<tr>
+					<td>CVE-2023-39325 (Rapid Reset)</td>
+					<td>HTTP/2 stream-reset DoS</td>
+					<td>x/net v0.17.0</td>
+			</tr>
+			<tr>
+					<td>CVE-2023-45288 (CONTINUATION flood)</td>
+					<td>Header parsing DoS</td>
+					<td>x/net v0.23.0</td>
+			</tr>
+			<tr>
+					<td>CVE-2024-45338</td>
+					<td>Non-linear HTML parsing</td>
+					<td>x/net v0.33.0</td>
+			</tr>
+	</tbody>
+</table>
+<p>I want to be careful not to overstate this. Go&rsquo;s minimum-version-selection means CRI-O&rsquo;s top-level <code>go.mod</code> likely pulls in a fixed version of <code>golang.org/x/net</code> already, so the actual exploitability in a compiled CRI-O binary is unclear to me — I didn&rsquo;t trace the full dependency graph to confirm. What I <em>can</em> say is that <code>go.mod</code> / <code>go.sum</code> still <em>record</em> cmux&rsquo;s stale pin, so SBOM and CVE scanners (Trivy, Grype, Snyk, AWS Inspector) will flag CRI-O with &ldquo;High&rdquo; and &ldquo;Critical&rdquo; findings regardless of the true runtime exposure. Whether those scanner findings translate to real risk in a CRI-O deployment, I genuinely don&rsquo;t know — and with the library unmaintained, there&rsquo;s nobody upstream to even investigate it.</p>
+<p>There are also some code-quality signals that illustrate just how stale the library is:</p>
+<ul>
+<li>References to <code>tls.VersionSSL30</code> (deprecated since Go 1.13; an unmerged PR to remove it has sat open since Nov 2019)</li>
+<li>Uses <code>ioutil.Discard</code> (deprecated since Go 1.16)</li>
+<li>Calls <code>net.Error.Temporary()</code> (deprecated since Go 1.18)</li>
+<li>The <code>HTTP1Fast</code> matcher — the one CRI-O uses — has a known bug where it silently drops <code>PATCH</code> requests</li>
+</ul>
+<h2 id="looking-at-alternatives">Looking at alternatives<a href="#looking-at-alternatives" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>So I surveyed the alternatives to understand what a replacement would actually look like:</p>
+<table>
+	<thead>
+			<tr>
+					<th>Option</th>
+					<th>Maintained</th>
+					<th>Fit</th>
+					<th>Notes</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Two separate listeners (stdlib)</td>
+					<td>n/a</td>
+					<td>★★★★★</td>
+					<td>Cleanest technically, but non-trivial for OpenShift</td>
+			</tr>
+			<tr>
+					<td><code>elastic/gmux</code></td>
+					<td>Active (Apr 2026)</td>
+					<td>★★★★</td>
+					<td>Near-drop-in, modern x/net, ~400 lines</td>
+			</tr>
+			<tr>
+					<td><code>cockroachdb/cmux</code></td>
+					<td>Semi-internal</td>
+					<td>★★★</td>
+					<td>Stopgap at best</td>
+			</tr>
+			<tr>
+					<td><code>grpc.Server.ServeHTTP</code></td>
+					<td>Part of grpc-go (EXPERIMENTAL)</td>
+					<td>★★</td>
+					<td>Avoid</td>
+			</tr>
+			<tr>
+					<td><code>connect-go</code></td>
+					<td>Active, larger change</td>
+					<td>★★</td>
+					<td>Out of scope</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong><code>grpc.Server.ServeHTTP</code></strong> sounds tempting but is still marked EXPERIMENTAL in grpc-go, silently ignores keep-alives and max-connection-age options, and benchmarks put it at roughly 2× slower than native gRPC (73 µs/op vs 37 µs/op). Not viable on a kubelet-critical path.</p>
+<p><strong><code>elastic/gmux</code></strong> is an actively maintained drop-in from Elastic — modern Go, modern <code>golang.org/x/net</code>, built specifically for the gRPC+HTTP multiplexing case. The codebase is small and auditable. Main concern is bus factor (one org effectively maintains it), but that&rsquo;s a manageable risk.</p>
+<p><strong>Two separate listeners</strong> is the architecturally purest answer and matches how containerd handles it. But as I dug into the OpenShift context below, I realized it&rsquo;s not a trivial swap.</p>
+<h2 id="why-the-single-socket-design-exists">Why the single-socket design exists<a href="#why-the-single-socket-design-exists" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>Before jumping to conclusions, I wanted to understand <em>why</em> CRI-O chose this design in the first place. Two reasons stood out:</p>
+<p><strong>1. OpenShift + SELinux.</strong> OpenShift runs on RHCOS with strict SELinux MCS policies. Every socket on the host needs to be labeled and tracked. A single socket keeps the policy surface small and auditable.</p>
+<p><strong>2. <code>oc debug node</code>.</strong> OpenShift worker nodes are effectively immutable — you can&rsquo;t just SSH in and <code>curl</code> a local endpoint. Instead, admins use <code>oc debug node</code>, which launches a privileged diagnostic container on the target node. If the HTTP inspect API were on a separate socket path, you&rsquo;d need to mount that socket into the debug container as well — a small but real operational change across OpenShift tooling and documentation. The current single-socket design lets you volume-mount one <code>.sock</code> file and get both gRPC and HTTP debug access from the same file descriptor.</p>
+<p>So this isn&rsquo;t a correctness bug — it&rsquo;s a design tradeoff with real OpenShift implications. Splitting the sockets cleanly would mean touching OpenShift&rsquo;s node debugging workflow, SELinux policy, and probably some operator configuration. That&rsquo;s a cross-team decision, not just a CRI-O one.</p>
+<h2 id="what-i-did-with-this">What I did with this<a href="#what-i-did-with-this" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>I filed <a href="https://github.com/cri-o/cri-o/issues/9969">Issue #9969</a> on the CRI-O repo with the full research: CVE table, alternatives evaluation, code-quality audit, and a breakdown of the OpenShift constraints. The goal was to surface the problem clearly so the maintainers and Red Hat stakeholders can decide the right path.</p>
+<p><strong>My own take:</strong> I&rsquo;d go with <code>elastic/gmux</code> as the replacement. It&rsquo;s a near-drop-in swap — the API is close enough that the diff in <code>main.go</code> is minimal, it removes the abandoned dependency and its scanner noise, and it doesn&rsquo;t require any architectural changes. Splitting to two separate sockets is the purer solution, but it&rsquo;s an OpenShift-wide architectural decision that involves more stakeholders than just the CRI-O team. That&rsquo;s not my call to make.</p>
+<h2 id="why-i-did-this-at-all">Why I did this at all<a href="#why-i-did-this-at-all" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>Honestly, this investigation was primarily about solidifying my own understanding of how CRI-O wires up its runtime interfaces — the relationship between the gRPC listener, the HTTP inspect API, and how cmux sits between them. The issue submission was a natural byproduct: once I had a clear picture of the problem and the options, it seemed worth documenting for the people who actually own the codebase.</p>
+<p>The full details are in the issue if you want to dig in or weigh in.</p>
+<p>Happy hacking.</p>
+
+      </div></div>
+
+  
+    
+<div class="pagination">
+  <div class="pagination__title">
+    <span class="pagination__title-h"></span>
+    <hr />
+  </div>
+  <div class="pagination__buttons">
+    
+      <a href="https://xw19.github.io/posts/about-gvisor/" class="button inline prev">
+        &lt; [<span class="button__text">Down the gVisor Rabbit Hole: A Sunday Afternoon Deep Dive</span>]
+      </a>
+    
+    
+      ::
+    
+    
+      <a href="https://xw19.github.io/posts/kubernetes-runtime-deep-dive/" class="button inline next">
+         [<span class="button__text">How Kubernetes Actually Runs Your Container: A Deep Dive into CRI-O, conmon, and crun</span>] &gt;
+      </a>
+    
+  </div>
+</div>
+
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2026 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

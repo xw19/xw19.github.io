@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Gvisor on xw19&#39;s terminal</title>
+		<link>https://xw19.github.io/tags/gvisor/</link>
+		<description>Recent content in Gvisor on xw19&#39;s terminal</description>
+		<generator>Hugo</generator>
+		<language>en-us</language>
+		
+		
+		
+		
+			<lastBuildDate>Sun, 28 Jun 2026 00:00:00 +0000</lastBuildDate>
+		
+			<atom:link href="https://xw19.github.io/tags/gvisor/index.xml" rel="self" type="application/rss+xml" />
+			<item>
+				<title>Down the gVisor Rabbit Hole: A Sunday Afternoon Deep Dive</title>
+				<link>https://xw19.github.io/posts/about-gvisor/</link>
+				<pubDate>Sun, 28 Jun 2026 00:00:00 +0000</pubDate>
+				<guid>https://xw19.github.io/posts/about-gvisor/</guid>
+				<description>&lt;p&gt;It’s a quiet Sunday afternoon. The kind of afternoon where you have a hot cup of cha on the desk, a terminal window open, and the headspace to write a new post—especially now that I&amp;rsquo;m starting to make some real headway on a new CRI-O feature. This journey actually began when I decided to get back into open-source software (OSS) following a break after the birth of my daughter.&lt;/p&gt;&#xA;&lt;p&gt;I reached out to Peter Hunt (&lt;a href=&#34;https://github.com/haircommander&#34;&gt;@haircommander&lt;/a&gt;), one of the lead maintainers of CRI-O, to see if there were any interesting challenges or areas that needed some love. He pointed me toward a long-standing integration puzzle: getting gVisor to play nicely with CRI-O, specifically around how the runtime handles multi-container pods.&lt;/p&gt;</description>
+			</item>
+	</channel>
+</rss>

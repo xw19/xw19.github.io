@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+    <title>Down the gVisor Rabbit Hole: A Sunday Afternoon Deep Dive :: xw19&#39;s terminal</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Reflecting on gVisor&#39;s architecture, syscall interception, and the road to making it work with CRI-O after a long break from open-source." />
+<meta name="keywords" content="" />
+
+  <meta name="robots" content="noodp" />
+
+<link rel="canonical" href="https://xw19.github.io/posts/about-gvisor/" />
+
+
+
+
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/buttons.min.86f6b4c106b6c6eb690ae5203d36b442c1f66f718ff4e8164fa86cf6c61ad641.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/code.min.c4581949edab7810737609fc5568852bcd908945f14561e366dcd2300a370545.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/fonts.min.5bb7ed13e1d00d8ff39ea84af26737007eb5051b157b86fc24487c94f3dc8bbe.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/footer.min.eb8dfc2c6a7eafa36cd3ba92d63e69e849e2200e0002a228d137f236b09ecd75.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/gist.min.a751e8b0abe1ba8bc53ced52a38b19d8950fe78ca29454ea8c2595cf26aad5c0.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/header.min.75c7eb0e2872d95ff48109c6647d0223a38db52e2561dd87966eb5fc7c6bdac6.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/main.min.36833afd348409fc6c3d09d0897c5833d9d5bf1ff31f5e60ea3ee42ce2b1268c.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/menu.min.3c17467ebeb3d38663dce68f71f519901124fa5cbb4519b2fb0667a21e9aca39.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/pagination.min.bbb986dbce00a5ce5aca0504b7925fc1c581992a4bf57f163e5d69cc1db7d836.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/post.min.e6dddd258e64c83e05cec0cd49c05216742d42fc8ecbfbe6b67083412b609bd3.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/syntax.min.a2cc694a9b481f15d41722bffc2cc54eea4c4f74fd9072b0b33253604c22606e.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/terminal.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.css">
+
+  
+  <link rel="stylesheet" href="https://xw19.github.io/css/terms.min.b81791663c3790e738e571cdbf802312390d30e4b1d8dc9d814a5b5454d0ac11.css">
+
+
+<link rel="stylesheet" href="https://xw19.github.io/terminal.css">
+
+
+
+
+<link rel="shortcut icon" href="https://xw19.github.io/favicon.png">
+<link rel="apple-touch-icon" href="https://xw19.github.io/apple-touch-icon.png">
+
+
+<meta name="twitter:card" content="summary" />
+
+
+
+<meta property="og:locale" content="en" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Down the gVisor Rabbit Hole: A Sunday Afternoon Deep Dive">
+<meta property="og:description" content="Reflecting on gVisor&#39;s architecture, syscall interception, and the road to making it work with CRI-O after a long break from open-source." />
+<meta property="og:url" content="https://xw19.github.io/posts/about-gvisor/" />
+<meta property="og:site_name" content="xw19&#39;s terminal" />
+
+  <meta property="og:image" content="https://xw19.github.io/og-image.png">
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+
+  <meta property="article:section" content="infrastructure" />
+
+  <meta property="article:section" content="security" />
+
+
+  <meta property="article:published_time" content="2026-06-28 00:00:00 &#43;0000 UTC" />
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+
+
+<div class="container">
+
+  <header class="header">
+  <div class="header__inner">
+    <div class="header__logo">
+      <a href="/">
+  <div class="logo">
+    xw19@localhost:~$ _
+  </div>
+</a>
+
+    </div>
+    
+      <ul class="menu menu--mobile">
+  <li class="menu__trigger">Menu&nbsp;▾</li>
+  <li>
+    <ul class="menu__dropdown">
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19">GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts">Posts</a></li>
+        
+      
+      
+    </ul>
+  </li>
+</ul>
+
+    
+    
+  </div>
+  
+    <nav class="navigation-menu">
+  <ul class="navigation-menu__inner menu--desktop">
+    
+      
+        
+          <li><a href="/about" >About</a></li>
+        
+      
+        
+          <li><a href="https://github.com/xw19" >GitHub</a></li>
+        
+      
+        
+          <li><a href="/posts" >Posts</a></li>
+        
+      
+      
+    
+  </ul>
+</nav>
+
+  
+</header>
+
+
+  <div class="content">
+    
+<article class="post">
+  <h1 class="post-title">
+    <a href="https://xw19.github.io/posts/about-gvisor/">Down the gVisor Rabbit Hole: A Sunday Afternoon Deep Dive</a>
+  </h1>
+  <div class="post-meta"><time class="post-date">2026-06-28</time></div>
+
+  
+    <span class="post-tags">
+      
+      #<a href="https://xw19.github.io/tags/kubernetes/">kubernetes</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/cri-o/">cri-o</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/gvisor/">gvisor</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/linux/">linux</a>&nbsp;
+      
+      #<a href="https://xw19.github.io/tags/security/">security</a>&nbsp;
+      
+    </span>
+  
+  
+
+
+  
+
+  <div class="post-content"><div>
+        <p>It’s a quiet Sunday afternoon. The kind of afternoon where you have a hot cup of cha on the desk, a terminal window open, and the headspace to write a new post—especially now that I&rsquo;m starting to make some real headway on a new CRI-O feature. This journey actually began when I decided to get back into open-source software (OSS) following a break after the birth of my daughter.</p>
+<p>I reached out to Peter Hunt (<a href="https://github.com/haircommander">@haircommander</a>), one of the lead maintainers of CRI-O, to see if there were any interesting challenges or areas that needed some love. He pointed me toward a long-standing integration puzzle: getting gVisor to play nicely with CRI-O, specifically around how the runtime handles multi-container pods.</p>
+<p>That was all the spark I needed. I accepted the challenge and started digging into the gVisor documentation. Here is a breakdown of how gVisor works, the specific lifecycle issue we need to solve, and the fascinating design patterns behind it.</p>
+<hr>
+<h2 id="what-actually-is-gvisor">What actually is gVisor?<a href="#what-actually-is-gvisor" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>To understand the problem, we have to look at the classic container security dilemma.</p>
+<p>Normally, containers aren&rsquo;t virtual machines. They share the host operating system&rsquo;s kernel. Standard runtimes like <code>runc</code> use Linux namespaces and cgroups to isolate processes, but the system call interface is still shared. If a containerized application finds a zero-day vulnerability in the Linux kernel, it can make a malicious system call and potentially break out of the container to compromise the host.</p>
+<p>On the other end of the spectrum, you have Virtual Machines (VMs) or microVMs (like Kata Containers or Firecracker). They run a full guest OS with their own kernel. This is highly secure, but it comes with a tax: slower startup times, higher memory footprint, and less efficient resource sharing.</p>
+<p><strong>gVisor</strong> sits right in the sweet spot.</p>
+<p>Instead of virtualizing the hardware, gVisor virtualizes the <em>kernel</em>. It is a <strong>user-space kernel</strong> written in Go that intercepts all system calls made by the containerized application. To the application, gVisor looks and acts exactly like a normal Linux kernel. But under the hood, gVisor handles those system calls in user space without letting them touch the host kernel directly.</p>
+<p>If the application makes a syscall, gVisor catches it, processes it in a non-privileged environment, and only makes safe, filtered calls to the host kernel when absolutely necessary.</p>
+<hr>
+<h2 id="the-architecture-sentry-gofer-and-runsc">The Architecture: Sentry, Gofer, and runsc<a href="#the-architecture-sentry-gofer-and-runsc" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>gVisor splits its responsibilities across three core components:</p>
+<pre tabindex="0"><code class="language-mermaid" data-lang="mermaid">graph TD
+    subgraph Container Sandbox
+        App[Application] --&gt;|Syscalls| Sentry[Sentry &lt;br/&gt; User-Space Kernel]
+    end
+    Sentry --&gt;|9P Protocol| Gofer[Gofer &lt;br/&gt; File System Mediator]
+    Gofer --&gt;|Safe FS Calls| HostFS[Host File System]
+    Sentry --&gt;|Filtered Syscalls| HostKernel[Host Kernel]
+
+    K8s[Kubelet / CRI-O] --&gt;|OCI Commands| runsc[runsc &lt;br/&gt; OCI Runtime]
+    runsc --&gt;|Manages| Sentry
+    runsc --&gt;|Manages| Gofer
+</code></pre><h3 id="1-the-sentry">1. The Sentry<a href="#1-the-sentry" class="hanchor" ariaLabel="Anchor">#</a> </h3>
+<p>The <strong>Sentry</strong> is the heart of gVisor. It is a complete, multi-threaded user-space kernel written in Go. It implements the vast majority of the Linux system call table (over 300 syscalls).</p>
+<ul>
+<li>When the application wants to allocate memory, create a socket, or start a thread, it makes a system call.</li>
+<li>The Sentry intercepts this call using a virtualization platform (like KVM or <code>ptrace</code>).</li>
+<li>It then executes the kernel logic for that syscall entirely inside the Sentry process in user space. The host kernel has no idea the application even tried to make that call.</li>
+</ul>
+<h3 id="2-the-gofer">2. The Gofer<a href="#2-the-gofer" class="hanchor" ariaLabel="Anchor">#</a> </h3>
+<p>File system access is historically one of the most common vectors for container escapes. To keep the Sentry as isolated as possible, it is not allowed to open host files directly.</p>
+<p>Instead, gVisor uses a helper process called the <strong>Gofer</strong>. The Sentry talks to the Gofer over a Unix domain socket using a custom version of the <strong>9P wire protocol</strong> (often called Omni9P). When the application wants to read a file, the Sentry asks the Gofer to open and read it, and the Gofer sends the data back. Even if an attacker somehow compromises the Sentry, they are still trapped inside a process that cannot directly access the host filesystem.</p>
+<h3 id="3-runsc">3. runsc<a href="#3-runsc" class="hanchor" ariaLabel="Anchor">#</a> </h3>
+<p>To make all of this work seamlessly with the existing container ecosystem, gVisor provides <strong><code>runsc</code></strong> (Run Sandboxed Container). <code>runsc</code> is an OCI-compliant runtime CLI. It implements the same command-line interface as <code>runc</code> (<code>runsc start</code>, <code>runsc state</code>, <code>runsc delete</code>, etc.).</p>
+<p>Because it adheres to the OCI spec, container orchestrators like Kubernetes—via container runtimes like CRI-O or containerd—can swap <code>runc</code> for <code>runsc</code> without needing to change how they manage containers.</p>
+<hr>
+<h2 id="the-specific-challenge-issue-10313">The Specific Challenge: Issue #10313<a href="#the-specific-challenge-issue-10313" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>So, what is the actual issue we need to solve?</p>
+<p>It turns out that while gVisor works reasonably well with <code>containerd</code>, it trips up under <code>CRI-O</code> when dealing with Kubernetes <strong><code>initContainers</code></strong> (tracked in <a href="https://github.com/google/gvisor/issues/10313">gVisor Issue #10313</a>). Credit for much of the initial discovery and troubleshooting goes to the original author of the issue, <a href="https://github.com/hbhasker">@hbhasker</a>, and the contributors in the thread who did the heavy lifting of mapping out the problem.</p>
+<p>Even so, actually solving this is still a massive challenge for me. This is my very first time reading through the gVisor codebase, and navigating a user-space kernel written in Go is a whole different beast.</p>
+<p>In gVisor&rsquo;s multi-container design, the runtime expects a single &ldquo;root&rdquo; container to represent the sandbox. The Sentry runs inside this root container and manages the lifecycle of all other sub-containers (which are run as stub processes inside the same Sentry instance).</p>
+<p>Here is where the assumption breaks:</p>
+<ol>
+<li>When a Kubernetes Pod starts, the Container Runtime Interface (CRI) creates the sandbox.</li>
+<li>If the Pod has <code>initContainers</code>, CRI-O creates and starts the first <code>initContainer</code> before any application containers are created.</li>
+<li>Because the <code>initContainer</code> is the first container created in the sandbox (after the pause container), gVisor treats it as the <strong>root container</strong>.</li>
+<li>The <code>initContainer</code> runs its task, completes successfully, and <strong>exits</strong>.</li>
+<li>Because the &ldquo;root&rdquo; container has exited, gVisor’s lifecycle management gets confused. When CRI-O subsequently tries to start the actual application containers, the sandbox is in a broken state because the Sentry&rsquo;s primary container process is gone.</li>
+</ol>
+<p>Compounding the issue, the CRI spec doesn&rsquo;t explicitly flag to the OCI runtime whether a container is an <code>initContainer</code> or a standard application container. To <code>CRI-O</code> and <code>runsc</code>, it&rsquo;s just another container creation request.</p>
+<p>Figuring out how to decouple the Sentry&rsquo;s lifecycle from the first application-level container—or teaching <code>runsc</code> how to handle containers that run to completion and exit without tearing down the sandbox—is the core puzzle I&rsquo;ll be digging into.</p>
+<hr>
+<h2 id="where-is-this-actually-used">Where is this actually used?<a href="#where-is-this-actually-used" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>As I was reading about gVisor, I started wondering: <em>who is actually running this in production?</em> It turns out, some of the most widely used cloud services rely on gVisor for security:</p>
+<ul>
+<li><strong>Google Cloud Run:</strong> When you deploy a serverless container on Cloud Run, Google is running your untrusted code on shared infrastructure. Under the hood, Cloud Run uses gVisor to ensure that customer containers are completely sandboxed from one another and the underlying host.</li>
+<li><strong>GKE Workload Isolation (GKE Sandbox):</strong> Google Kubernetes Engine offers a &ldquo;Sandbox&rdquo; mode. If you&rsquo;re running multi-tenant workloads or untrusted third-party applications, GKE wraps them in gVisor.</li>
+<li><strong>LLM &amp; AI Code Execution:</strong> This is a massive, modern use case. When you build AI agents or LLM platforms (like ChatGPT&rsquo;s Advanced Data Analysis) where the LLM writes Python code and executes it on the fly, you <em>must</em> run that code in an extremely secure sandbox. gVisor is the perfect fit because it starts instantly (unlike a VM) but prevents the LLM-generated code from doing anything malicious to the host.</li>
+</ul>
+<hr>
+<h2 id="the-aha-moment-the-interception-pattern">The &quot;Aha!&quot; Moment: The Interception Pattern<a href="#the-aha-moment-the-interception-pattern" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>While thinking about gVisor&rsquo;s system call interception model, I realized that this architecture is part of a beautiful, recurring design pattern in computer science. Once you see it, you start seeing it everywhere:</p>
+<table>
+	<thead>
+			<tr>
+					<th style="text-align: left">Technology</th>
+					<th style="text-align: left">What it Intercepts</th>
+					<th style="text-align: left">What it Translates To</th>
+					<th style="text-align: left">Purpose</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td style="text-align: left"><strong>gVisor</strong></td>
+					<td style="text-align: left">Container Linux Syscalls</td>
+					<td style="text-align: left">User-space Go logic / Safe Host Syscalls</td>
+					<td style="text-align: left">Security &amp; Sandboxing</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>WSL 1</strong></td>
+					<td style="text-align: left">Linux Syscalls</td>
+					<td style="text-align: left">Windows NT Kernel APIs</td>
+					<td style="text-align: left">Developer Convenience</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>Rosetta 2</strong></td>
+					<td style="text-align: left">x86_64 Instructions</td>
+					<td style="text-align: left">ARM64 Instructions</td>
+					<td style="text-align: left">Hardware Transition</td>
+			</tr>
+			<tr>
+					<td style="text-align: left"><strong>Wine / Proton</strong></td>
+					<td style="text-align: left">Windows Win32 &amp; DirectX APIs</td>
+					<td style="text-align: left">POSIX &amp; Vulkan/OpenGL APIs</td>
+					<td style="text-align: left">Compatibility (Gaming on Linux)</td>
+			</tr>
+	</tbody>
+</table>
+<ul>
+<li><strong>WSL 1 (Windows Subsystem for Linux 1):</strong> Before WSL2 moved to a lightweight Hyper-V VM, WSL1 worked by intercepting Linux system calls and translating them on the fly into Windows NT API calls.</li>
+<li><strong>macOS Rosetta 2:</strong> Apple’s translation layer intercepts x86_64 instructions from legacy Mac apps and translates them into ARM64 instructions that run on Apple Silicon.</li>
+<li><strong>Wine &amp; Proton:</strong> They intercept Windows system and graphics calls (like DirectX) and translate them to Linux system calls and Vulkan/OpenGL APIs, allowing Windows games to run smoothly on Linux.</li>
+</ul>
+<p>It’s the same mind-bending concept: instead of running the actual target environment, you build a translator at the boundary line. You intercept the interface, emulate the behavior, and map it to a different backend.</p>
+<hr>
+<h2 id="whats-next">What’s Next?<a href="#whats-next" class="hanchor" ariaLabel="Anchor">#</a> </h2>
+<p>Looking at all of these use cases and the elegance of the architecture, I went from <em>&ldquo;let&rsquo;s see what this is&rdquo;</em> to <em>&ldquo;I need to make this work&rdquo;</em> very quickly.</p>
+<p>I&rsquo;ve actually already gone ahead and implemented the PRs to address this! In my next post, I&rsquo;ll dive deep into the implementation details, how the code changes look, and how we got it all working.</p>
+<p>It&rsquo;s a bit of a steep learning curve after being away from the codebase for a while, but that&rsquo;s exactly what makes a Sunday afternoon project fun. If this work successfully goes through, it will easily be my biggest contribution to the AI ecosystem—enabling secure, sandboxed LLM code execution on enterprise-grade CRI-O and OpenShift clusters.</p>
+<p>Time to pour another cup of cha. ☕</p>
+
+      </div></div>
+
+  
+    
+<div class="pagination">
+  <div class="pagination__title">
+    <span class="pagination__title-h"></span>
+    <hr />
+  </div>
+  <div class="pagination__buttons">
+    
+    
+    
+      <a href="https://xw19.github.io/posts/cri-o-cmux-usage-and-issue/" class="button inline next">
+         [<span class="button__text">Investigating CRI-O&#39;s cmux usage: a code-reading journey</span>] &gt;
+      </a>
+    
+  </div>
+</div>
+
+
+  
+
+  
+    
+
+  
+</article>
+
+  </div>
+
+  
+    <footer class="footer">
+  <div class="footer__inner">
+    
+      <div class="copyright">
+        <span>© 2026 Powered by <a href="https://gohugo.io">Hugo</a></span>
+    
+      <span>:: <a href="https://github.com/panr/hugo-theme-terminal" target="_blank">Theme</a> made by <a href="https://github.com/panr" target="_blank">panr</a></span>
+      </div>
+  </div>
+</footer>
+
+
+
+
+
+
+<script type="text/javascript" src="/bundle.min.js"></script>
+
+
+
+
+
+  
+</div>
+
+</body>
+</html>

@@ -1,41 +1,57 @@
+
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:1313/about/</loc>
+    <loc>https://xw19.github.io/categories/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/cri-o/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/posts/about-gvisor/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/gvisor/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/categories/infrastructure/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/kubernetes/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/linux/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/posts/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/categories/security/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/security/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/</loc>
+    <lastmod>2026-06-28T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/containers/</loc>
+    <lastmod>2025-05-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/tags/internals/</loc>
+    <lastmod>2025-05-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/posts/cri-o-cmux-usage-and-issue/</loc>
+    <lastmod>2025-05-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://xw19.github.io/about/</loc>
     <lastmod>2025-05-19T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/categories/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/containers/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/cri-o/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/kubernetes-runtime-deep-dive/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/categories/infrastructure/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/internals/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/kubernetes/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/linux/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
-    <lastmod>2025-05-19T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/</loc>
+    <loc>https://xw19.github.io/posts/kubernetes-runtime-deep-dive/</loc>
     <lastmod>2025-05-19T00:00:00+00:00</lastmod>
   </url>
 </urlset>
